@@ -17,3 +17,7 @@ names(investment)
 download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/rounds.csv",destfile = "round.csv")
 round<-read.csv(file="round.csv",header=T)
 names(round)
+
+variable<-c(names(acqusition),names(addtion),names(company),names(investment),names(round))
+variable<-unique(variable)
+variable
