@@ -1,23 +1,21 @@
-download.file(url='https://raw.githubusercontent.com/notpeter/crunchbase-data/master/acquisitions.csv',destfile="1.csv")
-acqusition<-read.csv(file = "1.csv",header = T)
-names(acqusition)
-
-download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/additions.csv",destfile = "addition.csv")
-addtion<-read.csv(file="addition.csv",header = T)
-names(addtion)
-
-download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/companies.csv",destfile="companyname.csv")
-company<-read.csv(file="companyname.csv",header=T)
-names(company)
-
-download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/investments.csv",destfile = "investment.csv")
-investment<-read.csv(file="investment.csv",header=T)
-names(investment)
-
-download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/rounds.csv",destfile = "round.csv")
-round<-read.csv(file="round.csv",header=T)
-names(round)
-
+#Download First Datasets.
+download.file(url='https://raw.githubusercontent.com/notpeter/crunchbase-data/master/acquisitions.csv',
+              destfile="C:/Users/willi/Desktop/Github/DMproject/acquisitions.csv")
+acqusition<-read.csv(file = "C:/Users/willi/Desktop/GitHub/acquisitions.csv",
+                     header = T)
+download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/additions.csv",
+              destfile = "C:/Users/willi/Desktop/Github/DMproject/additions.csv")
+addtion<-read.csv(file="C:/Users/willi/Desktop/Github/DMproject/additions.csv",header = T)
+download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/companies.csv",
+              destfile="C:/Users/willi/Desktop/Github/DMproject/companies.csv")
+company<-read.csv(file="C:/Users/willi/Desktop/Github/DMproject/companies.csv",header=T)
+download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/investments.csv",
+              destfile = "C:/Users/willi/Desktop/Github/DMproject/investments.csv")
+investment<-read.csv(file="C:/Users/willi/Desktop/Github/DMproject/investments.csv",header=T)
+download.file(url="https://raw.githubusercontent.com/notpeter/crunchbase-data/master/rounds.csv",
+              destfile = "C:/Users/willi/Desktop/Github/DMproject/rounds.csv")
+round<-read.csv(file="C:/Users/willi/Desktop/Github/DMproject/rounds.csv",header=T)
+#variable names
 variable<-c(names(acqusition),names(addtion),names(company),names(investment),names(round))
 variable<-unique(variable)
 variable
