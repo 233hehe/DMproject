@@ -1,3 +1,11 @@
+library(stringr)
+library(dplyr)
+library(ggplot2)
+#function
+sumna<-function(x){
+  sum(is.na(x))
+}
+  
 #read data and clear out useless column
 company <- read.csv("crunchbase.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"))
 c1<-company
@@ -32,7 +40,25 @@ c2$Total.Funding.Amount<-as.numeric(gsub(x=c2$Total.Funding.Amount,replacement =
 c2$Total.Funding.Amount[is.na(c2$Total.Funding.Amount)]<-0
 #
 c2$IPO.Date<-as.Date(c2$IPO.Date,format="%m/%d/%Y")
-#
 write.csv(x = c2,file = "cleaning-1.csv",na ="",fileEncoding ="utf-8")
 c3<-c2
+#Create More Useful Column
+apply(c3,2,sumna)
+c3$Company.Length<-ifelse(is.na(c3$Closed.Date),Sys.Date()-c3$Founded.Date, c3$Closed.Date-c3$Founded.Date)/365
+#
+unique(as.vector(str_split(c3$Categories,",",simplify = TRUE)))
+a<-data.frame(str_split(c3$Categories,",",simplify = TRUE),stringsAsFactors = FALSE)
+#DEFINE SUCCESSFUL IS GOING TO IPO OR FOUNDING ROUNDS >=3
+c3$successful<-ifelse(!is.na(c3$IPO.Date)|c3$Total.Funding.Amount>=3|c3$Status=="Was Acquired",1,0)
+#rearrange column
+c4 <- c3 %>%
+  select(Company.Name,Headquarters.Location,Category.Groups,Categories,Founded.Date,Closed.Date,Company.Length,
+         Number.of.Employees,Number.of.Founders, Number.of.Articles,Number.of.Investors,Number.of.Lead.Investors,
+         Number.of.Funding.Rounds,Last.Funding.Date,Last.Funding.Type,Last.Funding.Amount,Last.Equity.Funding.Amount,
+         Total.Equity.Funding.Amount,Total.Funding.Amount,Stock.Exchange,Stock.Symbol,IPO.Date,Valuation.at.IPO,Money.Raised.at.IPO,
+         Status,successful)
+#exploratory Analysis
+qplot(c3$Number.of.Funding.Rounds)
+table(c3$Status)
+table(c3$Number.of.Funding.Rounds)
 
