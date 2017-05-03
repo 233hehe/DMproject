@@ -5,7 +5,7 @@ library(ggplot2)
 sumna<-function(x){
   sum(is.na(x))
 }
-  
+
 #read data and clear out useless column
 company <- read.csv("crunchbase.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"))
 c1<-company
@@ -40,16 +40,27 @@ c2$Total.Funding.Amount<-as.numeric(gsub(x=c2$Total.Funding.Amount,replacement =
 c2$Total.Funding.Amount[is.na(c2$Total.Funding.Amount)]<-0
 #
 c2$IPO.Date<-as.Date(c2$IPO.Date,format="%m/%d/%Y")
-write.csv(x = c2,file = "cleaning-1.csv",na ="",fileEncoding ="utf-8")
 c3<-c2
 #Create More Useful Column
 apply(c3,2,sumna)
 c3$Company.Length<-ifelse(is.na(c3$Closed.Date),Sys.Date()-c3$Founded.Date, c3$Closed.Date-c3$Founded.Date)/365
 #
 unique(as.vector(str_split(c3$Categories,",",simplify = TRUE)))
-a<-data.frame(str_split(c3$Categories,",",simplify = TRUE),stringsAsFactors = FALSE)
-#DEFINE SUCCESSFUL IS GOING TO IPO OR FOUNDING ROUNDS >=3
-c3$successful<-ifelse(!is.na(c3$IPO.Date)|c3$Total.Funding.Amount>=3|c3$Status=="Was Acquired",1,0)
+category<-data.frame(str_split(c3$Categories,",",simplify = TRUE),stringsAsFactors = FALSE)
+unique(as.vector(str_split(c3$Category.Groups,",",simplify=TRUE)))
+categorygroup<-data.frame(str_split(c3$Category.Groups,",",simplify=TRUE),stringsAsFactors = FALSE)
+#DEFINE SUCCESSFUL IS GOING TO IPO OR FOUNDING ROUNDS >=3 OR ACURIED
+for (i in 1:nrow(c3)){
+  if(!is.na(c3$IPO.Date[i])){
+    c3$successful[i]=1
+  }else if(!is.na(c3$Number.of.Funding.Rounds[i])&&c3$Number.of.Funding.Rounds[i]>=3){
+    c3$successful[i]=1
+  }else if(c3$Status[i]=="Was Acquired"){
+    c3$successful[i]=1
+  }else{
+    c3$successful[i]=0
+  }
+}
 #rearrange column
 c4 <- c3 %>%
   select(Company.Name,Headquarters.Location,Category.Groups,Categories,Founded.Date,Closed.Date,Company.Length,
@@ -58,7 +69,15 @@ c4 <- c3 %>%
          Total.Equity.Funding.Amount,Total.Funding.Amount,Stock.Exchange,Stock.Symbol,IPO.Date,Valuation.at.IPO,Money.Raised.at.IPO,
          Status,successful)
 #exploratory Analysis
-qplot(c3$Number.of.Funding.Rounds)
-table(c3$Status)
+cat("funding Rounds >=3 ") 
+sum(c4$Number.of.Funding.Rounds>=3,na.rm=TRUE)
+cat("was acquired")
+sum(c4$Status=="Was Acquired")
+cat("went to IPO")
+sum(!is.na(c4$IPO.Date))
+#
+qplot(Total.Funding.Amount,data=c4,main="founding rounds distribution",drv=Number.of.Employees)
 table(c3$Number.of.Funding.Rounds)
-
+cat("successful rate")
+table(c3$successful)[2]/nrow(c4)
+  
