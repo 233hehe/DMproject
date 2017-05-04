@@ -1,6 +1,8 @@
 library(stringr)
 library(dplyr)
+library(data.table)
 library(ggplot2)
+library(imputeMissings)
 #function
 sumna<-function(x){
   sum(is.na(x))
@@ -25,7 +27,7 @@ c2$Founded.Date<-as.Date(c2$Founded.Date,format = "%m/%d/%Y")
 c2$Number.of.Articles<-as.numeric(gsub(x=c2$Number.of.Articles,replacement = "",pattern = ","))
 c2$Number.of.Employees<-as.factor(c2$Number.of.Employees)
 c2$Number.of.Founders[is.na(c2$Number.of.Founders)]<-0
-c2$Number.of.Funding.Rounds[is.na(c2$Number.of.Funding.Roundsis.na)]<-0
+c2$Number.of.Funding.Rounds[is.na(c2$Number.of.Funding.Rounds)]<-0
 #
 c2$Last.Funding.Date<-as.Date(c2$Last.Funding.Date,format="%m/%d/%Y")
 c2$Last.Funding.Amount<-as.numeric(gsub(x=c2$Last.Funding.Amount,replacement = "",pattern = "(\\$|,)"))
@@ -53,7 +55,7 @@ categorygroup<-data.frame(str_split(c3$Category.Groups,",",simplify=TRUE),string
 for (i in 1:nrow(c3)){
   if(!is.na(c3$IPO.Date[i])){
     c3$successful[i]=1
-  }else if(!is.na(c3$Number.of.Funding.Rounds[i])&&c3$Number.of.Funding.Rounds[i]>=3){
+  }else if(!is.na(c3$Number.of.Funding.Rounds[i])&c3$Number.of.Funding.Rounds[i]>=3){
     c3$successful[i]=1
   }else if(c3$Status[i]=="Was Acquired"){
     c3$successful[i]=1
@@ -75,7 +77,7 @@ cat("was acquired")
 sum(c4$Status=="Was Acquired")
 cat("went to IPO")
 sum(!is.na(c4$IPO.Date))
-#
+#successful analysis
 qplot(Total.Funding.Amount,data=c4,main="founding rounds distribution",drv=Number.of.Employees)
 table(c3$Number.of.Funding.Rounds)
 cat("successful rate")
