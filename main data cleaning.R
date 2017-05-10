@@ -1,18 +1,28 @@
+# #read large DataSet, later on, we use full datasets.
+# Tbl <-list.files(pattern="*.csv") %>%
+#   map_df(~read_csv(., col_types = cols(.default = "c")))
+# 
+# write.csv(Tbl,"c.csv")
+
 library(stringr)
 library(dplyr)
 library(data.table)
 library(ggplot2)
 library(imputeMissings)
+library(tidyverse)
+library(caret)
+
 #function
 sumna<-function(x){
   sum(is.na(x))
 }
 
 #read data and clear out useless column
-company <- read.csv("crunchbase.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"))
+company <- read.csv("c.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"))
 c1<-company
 c1$X<-NULL
 c1$Company.Name.URL<-NULL
+c1$Website<-NULL
 c1$Stock.Symbol.URL<-NULL
 c1$Crunchbase.Rank<-NULL
 c1$Trend.Score..30.Days.<-NULL
@@ -26,7 +36,9 @@ c2$Closed.Date<-as.Date(c2$Closed.Date,format = "%m/%d/%Y")
 c2$Founded.Date<-as.Date(c2$Founded.Date,format = "%m/%d/%Y")
 c2$Number.of.Articles<-as.numeric(gsub(x=c2$Number.of.Articles,replacement = "",pattern = ","))
 c2$Number.of.Employees<-as.factor(c2$Number.of.Employees)
+c2$Number.of.Founders<-as.numeric(gsub(x=c2$Number.of.Articles,replacement = "",pattern = ","))
 c2$Number.of.Founders[is.na(c2$Number.of.Founders)]<-0
+c2$Number.of.Funding.Rounds<-as.numeric(gsub(c2$Number.of.Funding.Rounds,replacement = "",pattern = ","))
 c2$Number.of.Funding.Rounds[is.na(c2$Number.of.Funding.Rounds)]<-0
 #
 c2$Last.Funding.Date<-as.Date(c2$Last.Funding.Date,format="%m/%d/%Y")
@@ -47,10 +59,8 @@ c3<-c2
 apply(c3,2,sumna)
 c3$Company.Length<-ifelse(is.na(c3$Closed.Date),Sys.Date()-c3$Founded.Date, c3$Closed.Date-c3$Founded.Date)/365
 #
-unique(as.vector(str_split(c3$Categories,",",simplify = TRUE)))
-category<-data.frame(str_split(c3$Categories,",",simplify = TRUE),stringsAsFactors = FALSE)
-unique(as.vector(str_split(c3$Category.Groups,",",simplify=TRUE)))
-categorygroup<-data.frame(str_split(c3$Category.Groups,",",simplify=TRUE),stringsAsFactors = FALSE)
+categorylist<-na.omit(unique(as.vector(str_split(c3$Categories,",",simplify = TRUE))))
+categorygrouplist<-na.omit(unique(as.vector(str_split(c3$Category.Groups,",",simplify=TRUE))))
 #DEFINE SUCCESSFUL IS GOING TO IPO OR FOUNDING ROUNDS >=3 OR ACURIED
 for (i in 1:nrow(c3)){
   if(!is.na(c3$IPO.Date[i])){
@@ -70,16 +80,12 @@ c4 <- c3 %>%
          Number.of.Funding.Rounds,Last.Funding.Date,Last.Funding.Type,Last.Funding.Amount,Last.Equity.Funding.Amount,
          Total.Equity.Funding.Amount,Total.Funding.Amount,Stock.Exchange,Stock.Symbol,IPO.Date,Valuation.at.IPO,Money.Raised.at.IPO,
          Status,successful)
-#exploratory Analysis
-cat("funding Rounds >=3 ") 
-sum(c4$Number.of.Funding.Rounds>=3,na.rm=TRUE)
-cat("was acquired")
-sum(c4$Status=="Was Acquired")
-cat("went to IPO")
-sum(!is.na(c4$IPO.Date))
-#successful analysis
-qplot(Total.Funding.Amount,data=c4,main="founding rounds distribution",drv=Number.of.Employees)
-table(c3$Number.of.Funding.Rounds)
-cat("successful rate")
-table(c3$successful)[2]/nrow(c4)
-  
+#convert to dummy category
+for (i in 1:length(categorylist)){
+  for (n in 1:nrow(c4)){
+    col[n]<-ifelse(grepl(categorylist[i],c4$Categories[n]),1,0)
+  }
+   names=categorylist[i]
+   c4<-as.data.frame(cbind(c4,col))
+   colnames(c4)[ncol(c4)] <- names
+}
