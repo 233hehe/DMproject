@@ -77,8 +77,7 @@ c4 <- c3 %>%
   select(Company.Name,Headquarters.Location,Category.Groups,Categories,Founded.Date,Closed.Date,Company.Length,
          Number.of.Employees,Number.of.Founders, Number.of.Articles,Number.of.Investors,Number.of.Lead.Investors,
          Number.of.Funding.Rounds,Last.Funding.Date,Last.Funding.Type,Last.Funding.Amount,Last.Equity.Funding.Amount,
-         Total.Equity.Funding.Amount,Total.Funding.Amount,Stock.Exchange,Stock.Symbol,IPO.Date,Valuation.at.IPO,Money.Raised.at.IPO,
-         Status,successful)
+         Total.Equity.Funding.Amount,Total.Funding.Amount,successful)
 #convert category to dummy category
 col<-vector()
 for (i in 1:length(categorylist)){

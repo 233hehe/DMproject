@@ -1,4 +1,4 @@
-source("main data cleaning.R")
+source("Cleaning.R")
 set.seed(1)
 library(arules)
 library(arulesViz)
