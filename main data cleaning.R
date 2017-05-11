@@ -18,7 +18,7 @@ sumna<-function(x){
 }
 
 #read data and clear out useless column
-company <- read.csv("c.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"))
+company <- read.csv("crunchbase.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"))
 c1<-company
 c1$X<-NULL
 c1$Company.Name.URL<-NULL
@@ -81,11 +81,111 @@ c4 <- c3 %>%
          Total.Equity.Funding.Amount,Total.Funding.Amount,Stock.Exchange,Stock.Symbol,IPO.Date,Valuation.at.IPO,Money.Raised.at.IPO,
          Status,successful)
 #convert to dummy category
-for (i in 1:length(categorylist)){
+col = as.array(1:7947)
+for (i in 1:length(categorygrouplist)){
   for (n in 1:nrow(c4)){
-    col[n]<-ifelse(grepl(categorylist[i],c4$Categories[n]),1,0)
+    col[n]<-ifelse(grepl(categorygrouplist[i],c4$Category.Groups[n]),1,0)
   }
-   names=categorylist[i]
+   names=str_replace_all(string=categorygrouplist[i], pattern=" ", repl="")
    c4<-as.data.frame(cbind(c4,col))
    colnames(c4)[ncol(c4)] <- names
 }
+tmp = c4$Headquarters.Location
+
+
+c4$Headquarters.Location = tmp
+c4$Headquarters.Location = strsplit(c4$Headquarters.Location,",")
+
+for(i in 1:nrow(c4)){
+  c4$Headquarters.Location[i] = str_replace_all(c4$Headquarters.Location[[i]][3],pattern = " ",repl = "")
+
+}
+c4$Headquarters.Location = as.factor(as.character(c4$Headquarters.Location))
+
+rf = c4[,c(8:12,16:19,26:109)]
+library(dummies)
+rf <- dummy.data.frame(rf,names = "Headquarters.Location", sep = "_")
+rf$successful = as.factor(rf$successful)
+rf[(is.na(rf$Number.of.Employees)),"Number.of.Employees"] = "1-10"
+rf[(is.na(rf$Number.of.Founders)),"Number.of.Founders"] = mean(rf$Number.of.Founders)
+rf[(is.na(rf$Number.of.Articles)),"Number.of.Articles"] = mean(rf[!(is.na(rf$Number.of.Articles)),"Number.of.Articles"])
+rf[(is.na(rf$Number.of.Investors)),"Number.of.Investors"] = mean(rf[!(is.na(rf$Number.of.Investors)),"Number.of.Investors"])
+rf[(is.na(rf$Number.of.Lead.Investors)),"Number.of.Lead.Investors"] = mean(rf[!(is.na(rf$Number.of.Lead.Investors)),"Number.of.Lead.Investors"])
+rf[(is.na(rf$Last.Equity.Funding.Amount)),"Last.Equity.Funding.Amount"] = mean(rf[!(is.na(rf$Last.Equity.Funding.Amount)),"Last.Equity.Funding.Amount"])
+rf[(is.na(rf$Last.Funding.Amount)),"Last.Funding.Amount"] = mean(rf[!(is.na(rf$Last.Funding.Amount)),"Last.Funding.Amount"])
+rf[(is.na(rf$Total.Funding.Amount)),"Total.Funding.Amount"] = mean(rf[!(is.na(rf$Total.Funding.Amount)),"Total.Funding.Amount"])
+rf[(is.na(rf$Total.Equity.Funding.Amount)),"Total.Equity.Funding.Amount"] = mean(rf[!(is.na(rf$Total.Equity.Funding.Amount)),"Total.Equity.Funding.Amount"])
+#rf[(is.na(rf$Number.of.Funding.Rounds)),"Number.of.Funding.Rounds"] = mean(rf[!(is.na(rf$Number.of.Funding.Rounds)),"Number.of.Funding.Rounds"])
+library(randomForest)
+model = randomForest(successful~., data=rf, importance = TRUE, ntree = 10001, proximity=TRUE, sampsize=sampsizes)
+library(ROCR)
+predictions=as.vector(model$votes[,2])
+pred=prediction(predictions,rf$successful)
+perf_AUC=performance(pred,"auc") #Calculate the AUC value
+AUC=perf_AUC@y.values[[1]]
+perf_ROC=performance(pred,"tpr","fpr") #plot the actual ROC curve
+plot(perf_ROC, main="ROC plot",colorize =T)
+text(0.5,0.5,paste("AUC = ",format(AUC, digits=5, scientific=FALSE)))
+
+plot(model, log="y")
+varImpPlot(model)
+
+library(e1071)
+# Can handle both categorical and numeric input
+# but output must be categorical
+naivedata = rf
+naivedata$Headquarters.Location = c4$Headquarters.Location
+naive <- naiveBayes(successful~., data=naivedata)
+pre_bayes <- predict(naive, newdata = naivedata[,-10],type = "raw")
+pre_b <- prediction(pre_bayes[,2],naivedata$successful)
+per_bayes_p <- performance(pre_b,"tpr","fpr")
+plot(per_bayes_p,color ="blue",add=T)
+
+naive_t = table(rf$successful,prediction,dnn=list('actual','predicted'))
+(naive_t[1,2]/sum(naive_t[1,]))
+(naive_t[2,1]/sum(naive_t[2,]))
+((naive_t[1,1]+naive_t[2,2])/sum(naive_t))
+
+
+library(gbm)
+boostdata = naivedata
+tmp = levels(boostdata$Headquarters.Location)
+levels(boostdata$Headquarters.Location) = c(tmp,"others")
+boostdata[(is.na(boostdata$Headquarters.Location)),"Headquarters.Location"] = "others"
+boostdata$successful<-ifelse(boostdata$successful==1,1,0)
+boost=gbm(successful~.,data=boostdata,distribution="bernoulli",n.trees=5000,interaction.depth=4)
+summary(boost)
+yhat.boost=predict(boost,newdata=boostdata,n.trees=5000,type="response")
+pre_boost <- prediction(yhat.boost,boostdata$successful)
+per_boost_p <- performance(pre_boost,"tpr","fpr")
+
+plot(perf_ROC, main="ROC plot",colorize =T)
+text(0.5,0.5,paste("AUC = ",format(AUC, digits=5, scientific=FALSE)))
+plot(per_bayes_p,col ="blue",add=T)
+plot(per_boost_p,col ="red",add=T)
+
+pred_boost <- prediction(yhat.boost, boostdata$successful)
+perf_boost <- performance(pred_boost,"cost",cost.fp=1,cost.fn=1.4285)
+plot(perf_boost, col="orange",main="Startup Classfication")
+boost_cutoff<- perf_boost@x.values[[1]][(which.min(perf_boost@y.values[[1]]))]
+class_boost = ifelse(yhat.boost>boost_cutoff,1,0)
+boost_table = table(boostdata$successful,class_boost,dnn=list('actual','predicted'))
+(boost_table)
+
+pre_b <- prediction(pre_bayes[,2],naivedata$successful)
+perf_b <- performance(pre_b,"cost",cost.fp=1,cost.fn=1.4285)
+plot(perf_b, col="orange",main="Startup Classfication")
+naive_cutoff<- perf_b@x.values[[1]][(which.min(perf_b@y.values[[1]]))]
+class_naive = ifelse(pre_bayes[,2]>boost_cutoff,1,0)
+naive_table = table(naivedata$successful,class_naive,dnn=list('actual','predicted'))
+(naive_table)
+
+
+pre_rf <- prediction(as.vector(model$votes[,2]),rf$successful)
+perf_rf <- performance(pre_rf,"cost",cost.fp=1,cost.fn=1.4285)
+plot(perf_rf, col="orange",main="Startup Classfication")
+rf_cutoff<- perf_rf@x.values[[1]][(which.min(perf_rf@y.values[[1]]))]
+class_rf = ifelse(model$votes[,2]>rf_cutoff,1,0)
+rf_table = table(rf$successful,class_rf,dnn=list('actual','predicted'))
+(rf_table)
+
