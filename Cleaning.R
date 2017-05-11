@@ -17,7 +17,8 @@ sumna<-function(x){
 }
 
 #read data and clear out useless column
-company <- read.csv("c.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"))
+company <- read.csv("c.csv",stringsAsFactors = FALSE,na.strings = c(""," ","NA","Nan"),
+                    fileEncoding="latin1")
 c1<-company
 c1$X<-NULL
 c1$Company.Name.URL<-NULL
@@ -60,6 +61,8 @@ c3$Company.Length<-ifelse(is.na(c3$Closed.Date),Sys.Date()-c3$Founded.Date, c3$C
 #
 categorylist<-na.omit(unique(as.vector(str_split(c3$Categories,",",simplify = TRUE))))
 categorygrouplist<-na.omit(unique(as.vector(str_split(c3$Category.Groups,",",simplify=TRUE))))
+categorygrouplist<-gsub(" ","",categorygrouplist)
+categorygrouplist = unique(categorygrouplist)
 #DEFINE SUCCESSFUL IS GOING TO IPO OR FOUNDING ROUNDS >=3 OR ACURIED
 for (i in 1:nrow(c3)){
   if(!is.na(c3$IPO.Date[i])){
@@ -107,10 +110,10 @@ for (i in 1:length(categorygrouplist)){
   c5<-as.data.frame(cbind(c5,col))
   colnames(c5)[ncol(c5)] <- names
 }
-c5$Category.Groups<-str_split(c5$Categories,",",simplify = TRUE)[,1]
-c5$Categories<-str_split(c5$Categories,",",simplify = TRUE)[,1]
+#c5$Category.Groups<-str_split(c5$Categories,",",simplify = TRUE)[,1]
+#c5$Categories<-str_split(c5$Categories,",",simplify = TRUE)[,1]
 #After we create more useful column we drop the useless now!!!
-c6<-data.frame(cbind(c5,c4[,27:ncol(c4)]))
+c6<-c5
 colnames(c6)<-gsub(x=colnames(c6),pattern = "X.",replacement = "")
 c6$Var.650<-NULL
 c6$Var.73<-NULL
@@ -134,8 +137,7 @@ c6$Number.of.Articles[is.na(c6$Number.of.Articles)]<-median(na.omit(c6$Number.of
 c6$Number.of.Investors[is.na(c6$Number.of.Investors)]<-median(na.omit(c6$Number.of.Investors))
 c6$Number.of.Lead.Investors[is.na(c6$Number.of.Lead.Investors)]<-0
 c6<-c6[!is.na(c6$Total.Funding.Amount),]
-c6$Last.Funding.Amount<-NULL
 c6$Last.Equity.Funding.Amount<-NULL
 c6$Total.Equity.Funding.Amount<-NULL
 c6$Number.of.Founders[is.na(c6$Number.of.Founders)]<-median(na.omit(c6$Number.of.Founders))
-write.csv(c6,"Final-Cleaning.csv")
+#swrite.csv(c6,"Final-Cleaning.csv")
